@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live TV Player</title>
+    <title>Live TV Pro Player</title>
     <link href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
@@ -15,22 +15,32 @@
 <body>
 
 <div class="video-container">
-    <video id="player" controls autoplay playsinline></video>
+    <video id="player" controls autoplay playsinline muted></video>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.js"></script>
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const streamUrl = urlParams.get('stream');
+    let streamUrl = urlParams.get('stream');
     const video = document.getElementById('player');
     
     if (streamUrl) {
+        // 🔥 বড় অ্যাপের জাদুকরী লজিক: সিকিউরিটি ব্লক ভাঙার জন্য ফ্রি গ্লোবাল প্রক্সি যোগ করা হলো
+        if (!streamUrl.includes('corsproxy')) {
+            streamUrl = "https://corsproxy.io/?" + encodeURIComponent(streamUrl);
+        }
+
         if (Hls.isSupported()) {
-            const hls = new Hls();
+            const hls = new Hls({
+                maxPixelRatio: Array.isArray(window.devicePixelRatio) ? window.devicePixelRatio[0] : window.devicePixelRatio,
+                lowLatencyMode: true,
+            });
             hls.loadSource(streamUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                video.play();
+                video.play().catch(function(e) {
+                    console.log("Autoplay blocked, waiting for user click.");
+                });
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = streamUrl;
